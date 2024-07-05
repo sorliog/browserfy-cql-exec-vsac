@@ -9,11 +9,15 @@ const fhir = require('./fhir');
 const VSAC_SVS_URL_TEMPLATE = 'https://vsac.nlm.nih.gov/vsac/svs/RetrieveValueSet';
 const VSAC_FHIR_URL_TEMPLATE = 'https://cts.nlm.nih.gov/fhir/ValueSet/{{oid}}/$expand';
 
+
 /**
  * Constructs a code service with functions for downloading codes from the National Library of Medicine's
  * Value Set Authority Center.
- * @param {string} vsacCache - path to a folder in which to cache VSAC XML responses and the JSON value set DB
- * @param {boolean=false} loadFromCache - if true, and the cache exists, will initialize itself with the JSON DB
+ *
+ * @param {boolean} useDefaultUrl - Flag to determine whether to use the default NIH's URL
+ * @param {boolean} useFHIR - Flag to determine whether to use FHIR. If false, will use SVS api instead
+ * @param {string} vsacSvsUrl - The URL template for SVS api. Only needed if useDefaultUrl is false
+ * @param {string} vsacFhirUrl - The URL template for FHIR api.  Only needed if useDefaultUrl is false
  */
 class CodeService {
   constructor(useDefaultUrl = true, useFHIR = false, vsacSvsUrl = VSAC_SVS_URL_TEMPLATE, vsacFhirUrl = VSAC_FHIR_URL_TEMPLATE) {
@@ -28,51 +32,9 @@ class CodeService {
 
     // Initialize the local in-memory "database"
     this.valueSets = {}; // This will just be an object of objects.
-
-    // Local folder for storing valuesets we get from VSAC.
-    // if (typeof vsacCache !== 'undefined') {
-    //   this.cache = vsacCache;
-    // } else {
-    //   this.cache = 'vsac_cache';
-    // }
-
-    // const cacheDBFile = path.join(this.cache, 'valueset-db.json');
-    // if (loadFromCache && fs.existsSync(cacheDBFile)) {
-    //   this.loadValueSetsFromFile(cacheDBFile);
-    // }
   }
 
-  /**
-   * Add value sets to the code service from a JSON file.  The JSON should be a
-   * nested set of objects. At the first level the key is the 'oid' of a
-   * particular valueset. At the second level the key specifies the 'version'
-   * of the valueset; there could be multiple versions included here. The
-   * contents of valueSetsObj[oid][version] is an array of 'Code' objects. See
-   * cql.Code for more information, but Code objects consist of three keys:
-   * 1) 'code', 2) 'system', and 3) 'version'. The last is optional.
-   * If the file does not exist, nothing is added.
-   * @param {string} filePath - the path to the file containing valueset JSON
-   * @throws {SyntaxException} File is not valid JSON
-   */
-  // loadValueSetsFromFile(filePath) {
-  //   filePath = path.resolve(filePath);
-  //   if (!fs.existsSync(filePath)) {
-  //     return;
-  //   }
-  //   const json = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  //   for (let oid in json) {
-  //     let myOid = json[oid];
-  //     for (let version in myOid) {
-  //       let myCodes = myOid[version].codes.map(
-  //         elem => new Code(elem.code, elem.system, elem.version)
-  //       );
-  //       if (typeof this.valueSets[oid] === 'undefined') {
-  //         this.valueSets[oid] = {};
-  //       }
-  //       this.valueSets[oid][version] = new ValueSet(oid, version, myCodes);
-  //     }
-  //   }
-  // }
+
 
   /**
    * Given a list of value set references, will ensure that each has a local
@@ -114,18 +76,13 @@ class CodeService {
       }
     });
     if (oidsAndVersions.length) {
-      const output = null;
-      // const output = path.resolve(this.cache);
-      // if (caching && !(await fs.exists(output))) {
-      //   await fs.mkdirp(output);
-      // }
 
       const promises = oidsAndVersions.map(({ oid, version }) => {
         // Catch errors and convert to resolutions returning an error.  This ensures Promise.all waits for all promises.
         // See: http://stackoverflow.com/questions/31424561/wait-until-all-es6-promises-complete-even-rejected-promises
 
         return this.api
-          .downloadValueSet(umlsAPIKey, oid, version, output, this.vsacUrl, this.valueSets, options)
+          .downloadValueSet(umlsAPIKey, oid, version, this.vsacUrl, this.valueSets, options)
           .catch(err => {
             debug(
               `Error downloading valueset ${oid}${version != null ? ` version ${version}` : ''}`,

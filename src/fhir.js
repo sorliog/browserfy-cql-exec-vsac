@@ -3,11 +3,21 @@ const fetch = require('node-fetch');
 const debug = require('debug')('vsac'); // To turn on DEBUG: $ export DEBUG=vsac
 const { Code, ValueSet } = require('cql-execution');
 
+/**
+ * Asynchronously downloads a value set from VSAC using the provided API key, OID, version, and VSAC URL.
+ * Populates the provided value set database (vsDB) with the downloaded value set.
+ *
+ * @param {string} apiKey - The API key for accessing VSAC.
+ * @param {string} oid - The OID of the value set to download.
+ * @param {string} version - The version of the value set to download.
+ * @param {string} vsacUrl - The URL of the VSAC service.
+ * @param {Object} vsDB - The value set database to populate with the downloaded value set.
+ * @param {Object} options - Reserved for future use.
+ */
 async function downloadValueSet(
   apiKey,
   oid,
   version,
-  output,
   vsacUrl,
   vsDB = {},
   options = {
@@ -32,6 +42,16 @@ async function downloadValueSet(
 
 }
 
+/**
+ * Asynchronously retrieves all pages of a ValueSet expansion from the specified VSAC API.
+ *
+ * @param {string} apiKey - The API key for accessing the VSAC API.
+ * @param {string} oid - The OID of the ValueSet.
+ * @param {string} version - The version of the ValueSet.
+ * @param {string} vsacUrl - The URL of the VSAC API.
+ * @param {number} [offset=0] - The offset for pagination.
+ * @returns {Promise<Array>} An array of all pages of the ValueSet expansion.
+ */
 async function getValueSetPages(apiKey, oid, version, vsacUrl, offset = 0, ) {
   const page = await getValueSet(apiKey, oid, version, vsacUrl ,offset);
   if (page && page.expansion) {
@@ -48,21 +68,21 @@ async function getValueSetPages(apiKey, oid, version, vsacUrl, offset = 0, ) {
   }
 }
 
+/**
+ * Asynchronously fetches a ValueSet from the specified VSAC URL using the provided API key, OID, version, and offset.
+ *
+ * @param {string} apiKey - The API key for authorization.
+ * @param {string} oid - The OID of the ValueSet to fetch.
+ * @param {string} version - The version of the ValueSet (optional).
+ * @param {string} vsacUrl - The URL of the VSAC with '{{oid}}' as a placeholder for OID.
+ * @param {number} offset - The offset for pagination (default is 0).
+ * @returns {Promise} A Promise that resolves to the JSON response of the fetched ValueSet.
+ * @throws {Error} If the response status is not ok.
+ */
 async function getValueSet(apiKey, oid, version, vsacUrl, offset = 0) {
   debug(
     `Getting ValueSet: ${oid}${version != null ? ` version ${version}` : ''} (offset: ${offset})`
   );
-  // const options = {
-  //   headers: {
-  //     Authorization: `Basic ${Buffer.from(`apikey:${apiKey}`).toString('base64')}`
-  //   }
-  // };
-  // const params = new URLSearchParams({ offset });
-  // if (version != null) {
-  //   params.set('valueSetVersion', version);
-  // }
-  // const url = `https://cts.nlm.nih.gov/fhir/ValueSet/${oid}/$expand?${params}`;
-
   const options = {
     headers: {
       Authorization: `Basic ${btoa(`apikey:${apiKey}`)}`

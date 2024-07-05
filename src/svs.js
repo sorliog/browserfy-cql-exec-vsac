@@ -5,11 +5,22 @@ const debug = require('debug')('vsac'); // To turn on DEBUG: $ export DEBUG=vsac
 const { Code, ValueSet } = require('cql-execution');
 const vsacCS = require('./vsac-code-systems');
 
+/**
+ * Asynchronously downloads a value set from VSAC using the provided API key, OID, and optional version.
+ *
+ * @param {string} apiKey - The API key for accessing the VSAC service.
+ * @param {string} oid - The OID of the value set to be downloaded.
+ * @param {string} version - The version of the value set to be downloaded (optional).
+ * @param {string} vsacUrl - The URL of the VSAC service.
+ * @param {object} vsDB - The object representing the valueset database.
+ * @param {object} options - Additional options for downloading the value set (default: { svsCodeSystemType: 'url' }).
+ *
+ * @returns {Promise<void>} - A Promise that resolves once the value set is downloaded and parsed into the vsDB.
+ */
 async function downloadValueSet(
   apiKey,
   oid,
   version,
-  output,
   vsacUrl,
   vsDB = {},
   options = { svsCodeSystemType: 'url' },
@@ -42,6 +53,13 @@ async function downloadValueSet(
 
 }
 
+/**
+ * Retrieves the URI for a given code system from the provided codeSystems object.
+ *
+ * @param {Object} codeSystems - An object containing code systems and their URIs.
+ * @param {string} system - The code system for which the URI needs to be retrieved.
+ * @returns {Object|null} - Returns an object containing the URI for the code system if found, otherwise returns null.
+ */
 function getVSACCodeSystem(codeSystems, system) {
   if (
     typeof codeSystems[system] !== 'undefined' &&
@@ -53,9 +71,16 @@ function getVSACCodeSystem(codeSystems, system) {
   return null;
 }
 
-// Take in a string containing a string of the XML response from a VSAC SVS
-// response and parse it into a vsDB object.  This code makes strong
-// assumptions about the structure of the message.  See code below.
+
+/**
+ * Take in a string containing a string of the XML response from a VSAC SVS
+ * response and parse it into a vsDB object. This code makes strong
+ * assumptions about the structure of the message.
+ *
+ * @param {string} xmlString - The XML response string from VSAC SVS.
+ * @param {Object} [vsDB={}] - The object to store the parsed data.
+ * @param {Object} [options={ svsCodeSystemType: 'url' }] - Additional options for parsing.
+ */
 function parseVSACXML(xmlString, vsDB = {}, options = { svsCodeSystemType: 'url' }) {
   if (typeof xmlString === 'undefined' || xmlString == null || xmlString.trim().length == 0) {
     return;
